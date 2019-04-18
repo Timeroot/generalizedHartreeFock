@@ -1,0 +1,210 @@
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{question}[theorem]{Question}
+\newtheorem{claim}[theorem]{Claim}
+
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{slashed}
+\usepackage{braket}
+\usepackage{mathrsfs}
+\usepackage[margin=1in]{geometry}
+\usepackage{bm}
+\usepackage{siunitx}
+%\usepackage{bbold}
+\usepackage{wrapfig}
+\usepackage{mathtools}
+\usepackage{xcolor}
+
+\AtBeginDocument{
+\newcommand{\upvec}[3]{ \begin{bmatrix} {#1} \\  {#2} \\ {#3} \end{bmatrix} }
+\newcommand{\upvecNN}[2]{ \begin{bmatrix} {#1} \\  {#2} \end{bmatrix} }
+\newcommand{\longvec}[3]{ \begin{bmatrix} {#1} &  {#2} & {#3} \end{bmatrix}^T }
+\newcommand{\mat}[9]{ \begin{matrix} {#1} & {#2} & {#3} \\  {#4} & {#5} & {#6} \\  {#7} & {#8} & {#9} \\  \end{matrix} }
+\newcommand{\bmat}[9]{ \begin{bmatrix} {#1} & {#2} & {#3} \\  {#4} & {#5} & {#6} \\  {#7} & {#8} & {#9} \\  \end{bmatrix} }
+\newcommand{\diag}[3]{ \begin{bmatrix} {#1} & 0 & 0 \\  0 & {#2} & 0 \\  0 & 0 & {#3} \\  \end{bmatrix} }
+\newcommand{\matNN}[4]{ \begin{bmatrix} {#1} & {#2} \\ {#3} & {#4}\end{bmatrix} }
+\newcommand{\overto}[1]{ \overset{ {#1} }\longrightarrow }
+\newcommand{\overfrom}[1]{ \overset{ {#1} }\longleftarrow }
+\newcommand{\from}{\leftarrow }
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\DeclareSymbolFont{bbold}{U}{bbold}{m}{n}
+\DeclareSymbolFontAlphabet{\mathbbold}{bbold}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\Det}{Det}
+\DeclareMathOperator{\Tor}{Tor}
+\DeclareMathOperator{\Hom}{Hom}
+\DeclareMathOperator{\Ext}{Ext}
+\DeclareMathOperator{\Gal}{Gal}
+\DeclareMathOperator{\Min}{Minor}
+\DeclareMathOperator{\Aut}{Aut}
+\DeclareMathOperator{\curl}{curl}
+\DeclareMathOperator{\lcm}{lcm}
+\DeclareMathOperator{\sech}{sech}
+\DeclareMathOperator{\abs}{abs}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Ker}{Ker}
+\DeclareMathOperator{\Img}{Img}
+\newcommand{\9}{\,\,\,\,\,\,\,\,\,}
+\newcommand{\pr}{\!\!\!\!-- }
+\newcommand{\dint}{\int\!\!\!\int}
+\newcommand{\tint}{\int\!\!\!\int\!\!\!\int}
+\newcommand{\e}{\em e\em}
+\newcommand{\biop}[1]{\overset{#1}{\longleftrightarrow}}
+\newcommand{\Lag}{\mathcal{L}}
+\newcommand{\Quot}{\mathbb{Q}}
+\newcommand{\Ints}{\mathbb{Z}}
+\newcommand{\abpam}{\vee}
+\newcommand{\Comp}{\mathbb{C}}
+\newcommand{\Real}{\mathbb{R}}
+\newcommand{\Nats}{\mathbb{N}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\Sph}{\mathbb{S}}
+\newcommand{\Id}{\mathbb{I}}
+\newcommand{\Idt}{\mathbbold{1}}
+\newcommand{\Ex}{\mathbb{E}}
+\newcommand{\Mod}{\mathcal{M}}
+\newcommand{\ichg}{\,\delta\hspace{-0.3mm}}
+\newcommand{\Eldiag}{\textrm{Diag}_\textrm{el}}
+\newcommand{\repar}{ \vspace{-7mm}$ $ }
+\newcommand{\der}[3]{\left(\frac{\partial {#1}}{\partial {#2}}\right)_{#3}}
+\newcommand{\Choose}[2]{\left._{#1}C_{#2}\right.}
+\newcommand{\smod}{\!\!\!\!\!\mod}
+\newcommand{\til}[1]{\overset{\sim}{#1}}
+\newcommand{\showplot}[1]{
+	\begin{center}
+		\includegraphics[width=5.5in]{{#1}}
+	\end{center}
+}
+\DeclareSymbolFont{extraitalic}      {U}{zavm}{m}{it}
+\DeclareMathSymbol{\stigma}{\mathord}{extraitalic}{168}
+\DeclareMathSymbol{\Stigma}{\mathord}{extraitalic}{167}
+%$$\bm{\zeta},\, \bm{\varsigma},\, \stigma,\, \Stigma$$
+} 
+
+\hfuzz=\maxdimen \tolerance=10000 \hbadness=10000
+
+\title{Generalized Hartree-Fock and Self-Consistent Field}
+\author{Alex Meiburg}
+
+\begin{document}
+\maketitle
+
+\section{Formulating Hartree-Fock without Fock Orbitals}
+Standard Hartree-Fock is usually described in a first-quantization picture. While normally phrased in terms of $n$ occupied orbitals mixed from a set of $N$ available, this (unnecessarily) imposes a basis on the space of filled orbitals. When the product wavefunction is antisymmetrized by the Slater determinant, it actually loses uniqueness of what the 'factor' orbitals are. In the Hilbert space spanned by the available orbitals, there is an occupied subspace and a vacant subspace.
+\par With this in mind, we will show the problem can be equivalently described by a density matrix $D$. Suppose we are given a set of $n$ molecular orbitals $\ket{\psi_i}$, each written as a sum of atomic orbitals $\ket{\phi_j}$:
+$$\ket{\psi_i} = \sum_{j\le N} U_{ij}\ket{\phi_j}$$
+This gives us an $n\times N$ matrix $U$. The orthonormality of the $\ket{\psi_i}$ means we require that $U$ be unitary. This might seem awkward since $U$ isn't square, but it means that its rows are orthonormal. We can write down the density matrix as:
+$$D_{ij} = \sum_{k\le n}U_{ik}^\dagger U_{kj} = \sum_{k\le n}\ket{\psi_k}\bra{\psi_k}$$
+The matrix $D$ is Hermitian with trace $n$, where the only eigenvalues are 0 (corresponding unoccupied states) or 1 (occupied). If we are given a Hamiltonian
+$$H = \sum_{i,j\le N} t_{ij}\,c^\dagger_i c_j + \sum_{i,j,k,\ell\le N} \!u_{ijk\ell}\, c^\dagger_i c^\dagger_j c_k c_\ell$$
+and we want to compute the energy of a state $\ket{\bm \psi}$, we can actually do so purely in terms of $D$. Note that $u$ obeys 3 symmetries, $u_{ijkl} = u_{jikl} = u_{ijlk} = u_{klij}$. The first two arise because of symmetry in $c$'s, the last one arises because $H$ must be Hermitian. We can show that
+$$\braket{\bm\psi|H|\bm\psi} = \sum_{ij} t_{ij}D_{ij} + \sum_{ijk\ell}u_{ijk\ell}\,(D_{i\ell}D_{jk}-D_{ik}D_{j\ell})$$
+by expanding $\ket{\bm\psi}$ into $\ket{\psi_i}$ and then $\ket{\phi_j}$, and repeatedly applying $c_i\ket{\phi_j} = \delta_{ij}\ket{\phi_j}$ and contracting. Since we've now phrased things entirely in terms of $D_{ij}$, we see how the particulars of our $\ket{\psi_i}$ basis don't matter. If we changed mixed our occupied orbitals with an $n\times n$ unitary $M$:
+$$\ket{\psi_i'} = M_{ij}\ket{\psi_j} = U_{ij}'\ket{\phi_j}$$
+$$\implies D_{ij}' = \sum_{k\le n}U_{ik}'^\dagger U_{kj}' = \sum_{k\le n}(U_{ik}^\dagger M_{ij}^\dagger) (M_{ij}U_{kj}) = \sum_{k\le n}U_{ik}^\dagger U_{kj} = D_{ij}$$
+so that our new density matrix $D'$ would be equal to our old density matrix $D$, and thus our Hartree-Fock energy unchanged. In this setting, we are optimizing $D$ over the space of Hermitian operators with $n$ eigenvalues of 1, and $(N-n)$ eigenvalues of zero.
+
+\section{Enforcing the constraints on $U$}
+We ultimately want the H-F state with 0 variation in the expectation of the energy, or
+$$\ichg\braket{\bm\psi|H|\bm\psi} = 0$$
+but this needs to happen while respecting the constraints. Constraints are enforced via Lagrange multipliers $\lambda$, which we add to create a new optimization functional, $F$. The standard approach is to formulate the problem in terms of $U$, where the constraint is then unitarity. This leads to the following optimization problem:
+$$0 = \ichg F = \ichg (\braket{\bm\psi|H|\bm\psi} + \ichg\sum_{ij}\lambda_{ij}(\braket{\psi_i|\psi_j}-\Idt_{ij})$$
+To put this in a usable form, distribute the $\delta$s, and then factor out a single $\bra{\ichg\psi}$:
+$$ \ichg\braket{\psi|H|\bm\psi} + \sum_{ij}\lambda_{ij}(\braket{\ichg\psi_i|\psi_j}+\braket{\psi_i|\ichg\psi_j})$$
+$$ = \ichg\braket{\psi|H|\bm\psi} + \sum_{ij}\lambda_{ij}\braket{\ichg\psi_i|\psi_j}+\lambda_{ij}\braket{\ichg\psi_j|\psi_i}^*$$
+$$ = \ichg\braket{\psi|H|\bm\psi} + \sum_{ij}\lambda_{ij}\braket{\ichg\psi_i|\psi_j}+\lambda_{ji}\braket{\ichg\psi_i|\psi_j}^*$$
+Then expanding the variation of $H$:
+%$$\braket{\ichg\bm\psi|H|\bm\psi}+\braket{\ichg\bm\psi|H|\bm\psi}^* = \braket{\ichg\psi_k|t_{ij}|\bm\psi_k}+\braket{\ichg\psi_k|t_{ij}|\psi_k}^*$$
+%$$ + \sum_i\left( \braket{\psi_i\ichg\psi_k|u} \textrm{Umm something involving u}\right)$$
+$$\ichg\braket{\psi|H|\bm\psi} = \ichg\left(\sum_{ij} t_{ij}D_{ij} + \sum_{ijk\ell}u_{ijk\ell}\,(D_{i\ell}D_{jk}-D_{ik}D_{j\ell})\right)$$
+$$ = \sum_{ij} t_{ij}\ichg D_{ij} + \sum_{ijk\ell}u_{ijk\ell}\,(\ichg D_{i\ell}D_{jk}+D_{i\ell}\ichg D_{jk}-\ichg D_{ik}D_{j\ell}- D_{ik}\ichg D_{j\ell})$$
+We'd like to write this in the form $M_{ij}\ichg D_{ij}$, so distribute and relabel indices in the $u$ term. We can also use the symmetry in $u$ and $D$ to further arrange indices.
+$$\ichg\braket{\psi|H|\psi} = \sum_{ij} t_{ij}\ichg D_{ij} + \sum_{ijk\ell}u_{ijk\ell}\ichg D_{i\ell}D_{jk}+ u_{ijk\ell}D_{i\ell}\ichg D_{jk}- u_{ijk\ell}\ichg D_{ik}D_{j\ell}- u_{ijk\ell} D_{ik}\ichg D_{j\ell}$$
+$$ = \sum_{ij} t_{ij}\ichg D_{ij} + \sum_{ijk\ell}u_{i\ell kj}\ichg D_{ij}D_{\ell k}+u_{kji\ell}D_{k\ell}\ichg D_{ij}-u_{ikj\ell}\ichg D_{ij}D_{k\ell}- u_{\ell jki} D_{\ell k}\ichg D_{ij}$$
+$$ = \sum_{ij} \left(t_{ij} + \sum_{k\ell}u_{i\ell jk}D_{k\ell}+u_{i\ell jk}D_{k\ell}-u_{ikj\ell}D_{k\ell}- u_{ik j\ell} D_{k\ell}\right)\ichg D_{ij}$$
+$$ = \sum_{ij} \left(t_{ij} + 2\sum_{k\ell}(u_{i\ell jk}-u_{ikj\ell}) D_{k\ell}\right)\ichg D_{ij}$$
+Then:
+$$\ichg D = \ichg\left(\sum_{i\le n}\ket{\psi_i}\bra{\psi_i}\right) = \sum_{i\le n}\ket{\ichg\psi_i}\bra{\psi_i}+\ket{\psi_i}\bra{\ichg\psi_i}$$
+Leaving the equation
+$$\sum_{ij}\left(t_{ij} + 2\sum_{k\ell}(u_{i\ell jk}-u_{ikj\ell}) D_{k\ell}\right)\left(\sum_{k\le n}\ket{\ichg\psi_k}\bra{\psi_k}+\ket{\psi_k}\bra{\ichg\psi_k}\right)_{ij}  + \sum_{ij}\lambda_{ij}\braket{\ichg\psi_i|\psi_j}+\lambda_{ji}\braket{\ichg\psi_i|\psi_j}^* = 0$$
+Terms arising from $\ket{\ichg\psi_k}$ are conjugate-linear to $\bra{\ichg\psi_k}$, and so they can be treated as two separate equations. Taking only the linear part leaves
+$$\sum_{k\le n}\bra{\ichg\psi_k}_i\ket{\psi_k}_{j}  + \sum_{ij}\lambda_{ij}\braket{\ichg\psi_i|\psi_j} = 0$$
+We can simplify notation by treating the part in the middle as an operator:
+$$F = \sum_{ij}\left(t_{ij} + 2\sum_{k\ell}(u_{i\ell jk}-u_{ikj\ell}) D_{k\ell}\right)$$
+$$\sum_{k\le n}\bra{\ichg\psi_k}F\ket{\psi_k}  + \sum_{ij}\lambda_{ij}\braket{\ichg\psi_i|\psi_j} = 0$$
+This equation is satisfied (among many possibilities) by taking $\ket{\psi_j}$ to be eigenvectors of $F$, so that $\lambda$ is diagonal. So repeatedly diagonalizing $F$ and recomputing $F$ leads to the self-consistent field approach.
+
+\section{Enforcing the constraints on $D$}
+As we saw, however, we don't actually need to solve for $U$ (or equivalently, the $\ket{\psi_k}$): we can optimize directly on $D$. Now our constraints on $D$ can be written as
+$$D^2 - D = 0$$
+$$\textrm{(All eigenvalues 0/1. Matrix equation, so $n^2/2$ constraints bc Hermitian.)}$$
+$$\Tr[D]- n = 0$$
+$$\textrm{($n$ orbitals filled. 1 equation.)}$$
+We add Lagrange multipliers $\lambda_{ij}$ and $\varLambda$ for these two. The former leads to variation of
+$$\sum_{ij}\ichg(\lambda_{ij} D_{ik}D_{kj}-D_{ij}) = \sum_{ij}\lambda_{ij}D_{ik}\ichg D_{kj} + \lambda_{ij} D_{kj}\ichg D_{ik} - \lambda_{ij} \ichg D_{ij}$$
+$$= \sum_{ij}\lambda_{jk}D_{ik}\ichg D_{ij} + \lambda_{ik} D_{jk}\ichg D_{ij} - \lambda_{ij} \ichg D_{ij} = \sum_{ij}\left(\lambda_{jk}D_{ik} + \lambda_{ik} D_{jk} - \lambda_{ij}\right) \ichg D_{ij}$$
+Neglecting the $\Lambda \Tr[\ichg D]$ for now, this leaves
+$$0 = \sum_{ij} F_{ij}\ichg D_{ij} + \sum_{ij}\left(\lambda_{jk}D_{ik} + \lambda_{ik} D_{jk} - \lambda_{ij}\right) \ichg D_{ij}$$
+$$\implies\forall_{i,j},\quad  0 =  F_{ij} + D_{ik}\lambda_{kj} + \lambda_{ik} D_{kj} - \lambda_{ij}$$
+Or with implicit matrix multiplication,
+$$F + D\lambda + \lambda D - \lambda = 0$$
+By multiplying only on the left by $D$ and using $D^2 = D$, we get
+$$0 = DF + D\lambda + D\lambda D - D\lambda = DF + D\lambda D$$
+By multiplying only on the right:
+$$0 = FD + D\lambda D + \lambda D - \lambda D = FD + D\lambda D$$
+$$\implies FD = -D\lambda D = DF$$
+So that $D$ and $F$ commute. This shows us that $D$ must be diagonalized in a common basis as $F$. Thus, $\lambda$ can be as well. In the 0-eigenspace of $D$, we have $\lambda = F$, and in the 1-eigenspace, we have $\lambda = -F$. At this point it's clear that to satisfy the constraints, while minimizing energy, and keeping $D$ and $F$ commuting: diagonalize $F$, and build $D$ with $n$ eigenvectors that minimize the total energy.
+\par It's worth noting that these $n$ should actually be the vectors $\ket{\psi}$ with the lowest total energy; perhaps a better estimate would be the vectors with the lowest $\braket{\psi|H_{\textrm{eff}}|\psi}$, as opposed to the vectors with the lowest $\braket{\psi|F|\psi}$. In practice, this will often be the same; picking the true minimal set of vectors is known to be NP-Hard, unfortunately.
+
+\section{Generalized Hartree-Fock}
+For the generalized, variable number case, we replace the density matrix $D$ with the anti-symmetric covariance matrix,
+$$\Gamma_{k\ell} = \braket{\frac{i}{2}[c_k,c_\ell]}$$
+where $c_{2k} = a^\dagger_k+a_k$ and $c_{2k+1} = -i(a_k^\dagger-a_k)$. The basis of the $c_k$ is more convenient to work with here, because it introduces more symmetry between otherwise disparate creation and annihilation operators. To highlight the differences from $D$, $\Gamma$ is twice the size now, at $2N\times 2N$. Instead of being real symmetric, $\Gamma$ is real anti-symmetric. And to correspond to a pure state, instead of $D(1-D) = 0$, we require
+$$\Gamma^2 + 1=0$$
+forcing the eigenvalues to come in $\pm i$ pairs. In a similar way to how $D$ can be written as
+$$D = UU^\dagger$$
+where $U$ is an $n\times N$ unitary matrix, a $\Gamma$ can always be written as
+$$\Gamma = OJO^T$$
+where $O$ is an orthogonal matrix and $J=\oplus_{i\le N}\matNN 01{-1}0$, the symplectic form. Our Hamiltonian is largely the same as before, but now written in terms of $c_k$. We allow $aa$ and $a^\dagger ca\dagger$ terms (and similar quartic terms), lifting our earlier restriction of number conservation. This means $t$ and $u$ now also have length $2N$ in each index. Evaluating the Hamiltonian in terms of $\Gamma$ proceeds similarly to before, but with a third quadratic term. Due to the extra symmetries from working $c_k$ instead of $a_k$, and the symmetries available in $u$, all three terms end up being identical.
+$$\braket{\bm\psi|H|\bm\psi} = \sum_{ij} t_{ij}\Gamma_{ij} + 3\sum_{ijk\ell}u_{ijk\ell}\Gamma_{\ell k}\Gamma_{ij}$$
+Expanding the variation leads to a generalized Fock matrix,
+$$\ichg\braket{H} = \sum_{ij} t_{ij}\ichg\Gamma_{ij} + 3\sum_{ijk\ell}u_{ijk\ell}\ichg\Gamma_{\ell k}\Gamma_{ij} + 3\sum_{ijk\ell}u_{ijk\ell}\Gamma_{\ell k}\ichg\Gamma_{ij}$$
+$$ = \sum_{ij} t_{ij}\ichg\Gamma_{ij} + 3\sum_{ijk\ell}u_{\ell kji}\ichg\Gamma_{ij}\Gamma_{\ell k} + + 3\sum_{ijk\ell}u_{ijk\ell}\Gamma_{\ell k}\ichg\Gamma_{ij}$$
+$$ = \left(\sum_{ij} t_{ij} + 3\sum_{ijk\ell}u_{ijkl}\Gamma_{\ell k} + 3\sum_{ijk\ell}u_{ijk\ell}\Gamma_{\ell k}\right)\ichg\Gamma_{ij}$$
+$$ = \left(\sum_{ij} t_{ij} + 6\sum_{ijk\ell}u_{ijkl}\Gamma_{\ell k}\right)\ichg\Gamma_{ij}$$
+$$\implies F_{ij} = t_{ij} + 6\sum_{k\ell}u_{ijkl}\Gamma_{\ell k}$$
+The constraint that $\Gamma^2 + 1 = 0$ enters as
+$$0 = \ichg\left(\sum_{ij}\lambda_{ij} \Gamma_{ik}\Gamma_{kj} + \lambda_{ij}\right) = \sum_{ij}\lambda_{ij} \ichg\Gamma_{ik}\Gamma_{kj} + \sum_{ij}\lambda_{ij} \Gamma_{ik}\ichg\Gamma_{kj}$$
+$$ = \sum_{ij}\lambda_{ik} \ichg\Gamma_{ij}\Gamma_{jk} + \sum_{ij}\lambda_{kj} \Gamma_{ki}\ichg\Gamma_{ij} = \sum_{ij}\left( -\Gamma_{ik}\lambda_{kj} - \lambda_{ik} \Gamma_{kj}\right)\ichg\Gamma_{ij}$$
+The zero-variation equations thus reduce to
+$$F + \Gamma \lambda + \lambda \Gamma = 0$$
+To solve, use similar tricks as before. Multiply by $\Gamma$ on the left, and use $\Gamma^2 = -1$:
+$$\Gamma F -\lambda + \Gamma \lambda \Gamma = 0$$
+And when we multiply on the right:
+$$F\Gamma  + \Gamma \lambda \Gamma - \lambda = 0$$
+$$\implies F\Gamma = \Gamma F$$
+leading us again to conclude that our matrix (before $D$, now $\Gamma$) can be commonly diagonalized with $F$. Before, we were choosing $n$ eigenvectors to give eigenvalue 1, and the remaining $N-n$ to give 0. Now, the eigenvectors of $F$ are naturally paired up into complex conjugates, and we have to choose which in each pair will get an eigenvalue of $i$ in $\Gamma$, and which gets an eigenvalue of $-i$. Instead of having a single real Fock energy, we have two conjugate purely imaginary eigenvalues, $\pm i\epsilon$. Now the analog of choosing $n$ orbitals based on their Fock energies, is choosing to assign $+i$ to the vector with positive imaginary eigenvalue, and vice versa, so that
+$$\Tr[F\Gamma] = \sum (+i)(+i\epsilon) + (-i)(-i\epsilon) = \sum -2\epsilon$$
+is as small as possible. If instead we would like to choose based on energies of $H$, we use $H = (T+F)/2$, optionally flipping the sign on eigenvector $v$ if $ivTv^* > \epsilon$. So, the corresponding procedure for self-consistent field in the gHF form:
+\begin{enumerate}
+	\item Transform from the $a$, $a^\dagger$ basis into $c$, building appropriate $t$ and $u$.
+	\item Choose an initial $\Gamma$
+	\item Compute $F = t_{ij} + 6\sum_{k\ell}u_{ijkl}\Gamma_{\ell k}$
+	\item Diagonalize $F$
+	\item Replace an eigenvalue $\pm i \epsilon$ with $\pm i$
+	\item The resulting matrix is the new $\Gamma$, proceed to step 3.
+\end{enumerate}
+In practice, diagonalizing $F$ directly with a generic eigenvector library will waste time, since it has the anti-symmetric structure, and so a 2x redundancy in the eigenvectors and eigenvalues. Unless your linear algebra library has direct support for anti-symmetric matrices, it might be faster to diagonalize $iF$, which will be Hermitian (although, complex).
+
+\section{HF Variation with Gradient Descent}
+
+\end{document}
