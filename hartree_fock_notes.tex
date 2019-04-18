@@ -205,6 +205,10 @@ is as small as possible. If instead we would like to choose based on energies of
 \end{enumerate}
 In practice, diagonalizing $F$ directly with a generic eigenvector library will waste time, since it has the anti-symmetric structure, and so a 2x redundancy in the eigenvectors and eigenvalues. Unless your linear algebra library has direct support for anti-symmetric matrices, it might be faster to diagonalize $iF$, which will be Hermitian (although, complex).
 
-\section{HF Variation with Gradient Descent}
+\section{Recovering the energy}
+Once we have $\Gamma$ from the above, the energy is computed as
+$$F = t_{ij} + 6\sum_{k\ell}u_{ijkl}\Gamma_{\ell k}$$
+$$E_{final} = E_0 + \frac{1}{4}\Tr[\Gamma(t+F)]$$
+where $E_0$ is the constant term in the Hamiltonian. The factor of $\frac{1}{4}$ is there (as compared to the $\frac{1}{2}$ before) because we've doubled the number of modes when we went to the Majorana basis. If are we given $U$ and $T$ in the creation/annihilation basis, then when we switch to Majorana modes and antisymmetrize, $U$ will contribute to $t$ (the 'diagonal terms'), and both $U$ and $T$ will contribute to $E_0$.
 
 \end{document}
