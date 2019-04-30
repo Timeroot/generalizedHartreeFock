@@ -193,6 +193,27 @@ function fermToMajDense(mat::Array{Complex{Float64},2})
 	return (e0, res)
 end
 
+#like fermToMajDense but for number-violating terms
+function NVfermToMajDense(mat::Array{Complex{Float64},2})
+	n = size(mat)[1]
+	res = zeros(2n,2n)
+	e0 = 0
+	for i = 1:n, j = 1:n
+		re_ = real(mat[i,j])
+		im_ = imag(mat[i,j])
+		res[2i-1,2j-1] = -re_/2
+		res[2i,2j] = -re_/2
+		res[2i,2j] = +im_/2
+		res[2i-1,2j-1] = -im_/2
+		if i==j
+			e0 += re_/2
+		end
+	end
+	#antisymmetrize
+	res = (res - transpose(res))/2
+	return (e0, res)
+end
+
 #Take a covariance matrix, and measure how much it differs from a number
 #eigenstate. If this number is significantly larger than zero, the gHF is
 #breaking number symmetry.
@@ -238,7 +259,9 @@ function tranposeSparseTensor(tensor, perm)
 end
 
 #Assumes the orbitals are already orthonormal.
-function generalizedHF(tMat, uEntries, n, enuc=0, tol=1e-7, maxiter=20)
+#numViolate is number-violating terms. (c_i* c_j* + c_i c_j)*numViolate[i,j]. Not implemented yet...
+function generalizedHF(tMat, uEntries, n, enuc=0; tol=1e-7, maxiter=20, numViolate=())
+
 	#Change basis from ak,ak* into c2k,c2k-1.
 	e0T, tMatC = fermToMajDense(tMat)
 	enuc += e0T
@@ -261,7 +284,13 @@ function generalizedHF(tMat, uEntries, n, enuc=0, tol=1e-7, maxiter=20)
 	eOld = e0 = 0
 	
 	dFock = 0
+	#playing with these might help stability.
+	tMAThw = 0
+	RandInit = 0.8
+	# amount to average with previous iteration's density matrix.
+	OLDFOCKw = 0
 	println("Start loop")
+	
 	
 	while true
 		if VERBOSE
@@ -302,6 +331,7 @@ function generalizedHF(tMat, uEntries, n, enuc=0, tol=1e-7, maxiter=20)
 		#We've now built a new fock matrix and can repeat the loop.
 		
 		# before we do, compute some numbers on how it's converging
+		dFockOld = dFock
 		dFock = oldFock - fock0
 		dFockE = tr(densityMat * dFock)
 		
@@ -313,7 +343,11 @@ function generalizedHF(tMat, uEntries, n, enuc=0, tol=1e-7, maxiter=20)
 		eNew = tr(densityMat * (tMatC + fock0))/4
 		eTot = eNew + enuc
 		println("Iter #",iter,",  E = ",eTot,",  dFock = ",sum(abs.(dFock)))
-			
+		
+		if(iter > 1 && sum(abs.(dFock)) > sum(abs.(dFockOld)))
+			OLDFOCKw += 0.5
+		end
+		
 		fock0 = (fock0 + OLDFOCKw*oldFock)/(1+OLDFOCKw)
 		if iter > 1
 			eOld = e0
@@ -346,7 +380,7 @@ function generalizedHF(tMat, uEntries, n, enuc=0, tol=1e-7, maxiter=20)
 end
 
 #Assumes the orbitals are already orthonormal.
-function RandomHF(tMat, uEntries, n, enuc=0, tol=1e-7, maxtries=1000)
+function RandomHF(tMat, uEntries, n, enuc=0; tol=1e-7, maxiter=1000)
 	#Change basis from ak,ak* into c2k,c2k-1.
 	e0T, tMatC = fermToMajDense(tMat)
 	enuc += e0T
@@ -404,23 +438,18 @@ function RandomHF(tMat, uEntries, n, enuc=0, tol=1e-7, maxtries=1000)
 		end
 		
 		#Termination condition: energy stabilized?
-		if (iter > maxtries)
+		if (iter > maxiter)
 			println()
 			
 			nAvg = sum(map(i -> (-dBest[2*i-1,2*i]+1)/2, 1:n))
 			println("Expected particles: ",nAvg)
 			println("Best energy: ",eBest)
-			return (eBest, 0, dBest, 0)
+			return (eBest, 0*dBest, dBest, 0*dBest) #no actual fock matrices
 		end
 		#Otherwise, loop.
 		iter+=1
 		
 	end
 end
-
-#playing with these might help stability.
-OLDFOCKw = 1
-tMAThw = 0
-RandInit = 0.1
 
 VERBOSE = false

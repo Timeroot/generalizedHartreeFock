@@ -135,7 +135,7 @@ end
 
 #Does normal hartree fock, in the grand canonical ensemble.
 #Mostly just a wrapper to take the same arguments are generalizedHF.
-function HF(tMat, uEntries, n, enuc=0, tol=1e-7, maxiter=20)
+function HF(tMat, uEntries, n, enuc=0; tol=1e-7, maxiter=20)
 	eeRep = map(x -> (x[1][1],x[1][2],x[1][3],x[1][4], x[2]), uEntries)
 	return hartreefock(tMat, I, eeRep, n, -1, 1, enuc, tol, maxiter)
 end
