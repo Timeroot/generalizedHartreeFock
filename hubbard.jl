@@ -17,7 +17,7 @@ println("Libraries loaded.")
 # * Periodic boundary conditions (true or false)
 # * Number of tries (take the minimum energy)
 # * Any further named options to be passed to the model
-function hubbard1D(model, nSites; hoppingT=1, U=0, mu=0, periodic=false, restarts=1, options=())
+function hubbard1D(model, nSites; hoppingT=1, U=0, mu=0, periodic=false, restarts=1, uSymm=true, options=())
 	# compute number of orbitals, 2 spins per site
 	n = 2*nSites
 
@@ -42,9 +42,11 @@ function hubbard1D(model, nSites; hoppingT=1, U=0, mu=0, periodic=false, restart
 		
 		# U(ci*ci-1/2)(cj*cj-1/2) = U ci*cj*cjci + (-U/2)ci*ci + (-U/2)cj*cj + U/4
 		push!(Umat, ([i,i2,i2,i], U))
-		T[i,i] -= U/2
-		T[i2,i2] -= U/2
-		e0 += U/4
+		if uSymm
+			T[i,i] -= U/2
+			T[i2,i2] -= U/2
+			e0 += U/4
+		end
 	end
 	
 	#add chemical potential
@@ -70,6 +72,7 @@ function hubbard1D(model, nSites; hoppingT=1, U=0, mu=0, periodic=false, restart
 end
 
 function hubbard2D(model, nSize; hoppingT=1, U=0, mu=0, periodic=false, restarts=1, options=())
+	println("n=",nSize,", U=",U," mu=",mu," model=",model)
 	# compute number of orbitals, 2 spins per site
 	n = 2*nSize*nSize
 
@@ -140,20 +143,20 @@ end
 function writeData1D()
     xs = -20:0.5:8
 	
-	HFdataN2 = map(u -> hubbard1D(HF,25,1,u,-2,true,7), xs)
-	gHFdataN2 = map(u -> hubbard1D(generalizedHF,25,1,u,-2,true,3), xs)
+	HFdataN2 = map(u -> hubbard1D(HF,25,U=u,mu=-2,periodic=true,restarts=7), xs)
+	gHFdataN2 = map(u -> hubbard1D(generalizedHF,25,U=u,mu=-2,periodic=true,restarts=3), xs)
 
-	HFdata0 = map(u -> hubbard1D(HF,25,1,u,0,true,7), xs)
-	gHFdata0 = map(u -> hubbard1D(generalizedHF,25,1,u,0,true,3), xs)
+	HFdata0 = map(u -> hubbard1D(HF,25,U=u,mu=0,periodic=true,restarts=7), xs)
+	gHFdata0 = map(u -> hubbard1D(generalizedHF,25,U=u,mu=0,periodic=true,restarts=3), xs)
 
-	HFdata1 = map(u -> hubbard1D(HF,25,1,u,1,true,7), xs)
-	gHFdata1 = map(u -> hubbard1D(generalizedHF,25,1,u,1,true,3), xs)
+	HFdata1 = map(u -> hubbard1D(HF,25,U=u,mu=1,periodic=true,restarts=7), xs)
+	gHFdata1 = map(u -> hubbard1D(generalizedHF,25,U=u,mu=1,periodic=true,restarts=3), xs)
 
-	HFdata2 = map(u -> hubbard1D(HF,25,1,u,2,true,5), xs)
-	gHFdata2 = map(u -> hubbard1D(generalizedHF,25,1,u,2,true,3), xs)
+	HFdata2 = map(u -> hubbard1D(HF,25,U=u,mu=2,periodic=true,restarts=5), xs)
+	gHFdata2 = map(u -> hubbard1D(generalizedHF,25,U=u,mu=2,periodic=true,restarts=3), xs)
 
-	HFdata4 = map(u -> hubbard1D(HF,25,1,u,4,true,5), xs)
-	gHFdata4 = map(u -> hubbard1D(generalizedHF,25,1,u,4,true,3), xs)
+	HFdata4 = map(u -> hubbard1D(HF,25,U=u,mu=4,periodic=true,restarts=5), xs)
+	gHFdata4 = map(u -> hubbard1D(generalizedHF,25,U=u,mu=4,periodic=true,restarts=3), xs)
 
 	data = [xs HFdataN2 HFdata0 HFdata1 HFdata2 HFdata4 gHFdataN2 gHFdata0 gHFdata1 gHFdata2 gHFdata4]
 	writedlm("D:\\Timeroot\\Documents\\UCSB_G1\\GMPS\\hubbard1D.csv", data, ",")
@@ -174,8 +177,8 @@ function writeData1DMu05()
 	# writedlm("D:\\Timeroot\\Documents\\UCSB_G1\\GMPS\\hubbard1DmuN05.csv", data, ",")
 	
 	
-	HFdata05 = map(u -> hubbard1D(HF,6,1,u,0.5,false,14), xs)
-	gHFdata05 = map(u -> hubbard1D(generalizedHF,6,1,u,0.5,false,20), xs)
+	HFdata05 = map(u -> hubbard1D(HF,            6,U=u,mu=0.5,restarts=14)[1], xs)
+	gHFdata05 = map(u -> hubbard1D(generalizedHF,6,U=u,mu=0.5,restarts=20)[1], xs)
 	data = [xs HFdata05 gHFdata05]
 	writedlm("D:\\Timeroot\\Documents\\UCSB_G1\\GMPS\\hubbard1Dmu05_6.csv", data, ",")
 	
@@ -184,4 +187,36 @@ function writeData1DMu05()
 	#gHFdata05 = map(u -> hubbard1D(generalizedHF,20,1,u,0.5,false,20), xs)
 	#data = [xs HFdata05 gHFdata05]
 	#writedlm("D:\\Timeroot\\Documents\\UCSB_G1\\GMPS\\hubbard1Dmu05_20.csv", data, ",")
+end
+
+function writeDataNvsE()
+	data = zeros(0,5)
+	
+	for U = [-10,-4,-2,-1,0,2,4]
+		muMin = Dict(-10 => -6,   -4 => -3.6, -2 => -2.4, -1 => -2.1, 0 => -2, 2 => -2.4, 4 => -2.4)
+		muMax = Dict(-10 => -2.4, -4 => -0.6, -2 => 0.4,  -1 => 1.2,  0 => 2,  2 => 4.4,  4 => 6.2)
+		for mu = muMin[U]:0.01:muMax[U]
+			for n = [50,100]
+				result = hubbard1D(generalizedHF,n;U=U,mu=mu,uSymm=false)
+				E = result[1]/n
+				dBest = result[3]
+				nAvg = sum(map(i -> (-dBest[2*i-1,2*i]+1)/2, 1:(2*n))) / n		
+				
+				println([U mu E nAvg])
+				data = vcat(data, [U mu E nAvg n])
+			end
+		end
+	end
+	writedlm("D:\\Timeroot\\Documents\\UCSB_G1\\GMPS\\hubbard1DDataNvsE.csv", data, ",")
+	
+end
+
+function writeData2D()
+	xs = -6:0.2:6
+
+	#HFdata05 = map(u -> hubbard2D(HF,            12,U=u,mu=0.5,restarts=2)[1], xs)
+	gHFdata05 = map(u -> hubbard2D(generalizedHF,12,U=u,mu=0.5,restarts=2)[1], xs)
+	data = [xs gHFdata05]
+	writedlm("D:\\Timeroot\\Documents\\UCSB_G1\\GMPS\\hubbard2D_12_12_better.csv", data, ",")
+	
 end

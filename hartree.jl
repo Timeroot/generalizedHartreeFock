@@ -23,6 +23,10 @@ using LinearAlgebra
 ###
 
 function hartreefock(hCore, overlap, eeRep, n, nOcc, orbitalsize=1, enuc=0, tol=1e-7, maxiter=20)
+	#playing with these might help stability.
+	RandInit = 10
+	# amount to average with previous iteration's density matrix.
+	OLDFOCKw = 0
 	
 	# Use the overlap integrals to build an orthogonalizing symmetric matrix S.
 	# This involves solving an eigensystem on the overlap integrals, once.
@@ -39,7 +43,7 @@ function hartreefock(hCore, overlap, eeRep, n, nOcc, orbitalsize=1, enuc=0, tol=
 	
 	eeRep = orderUFerm(eeRep)
 	
-	fock0 = hCore + 10.0 * Tridiagonal(rand(n,n).-0.5) #randomly perturb initial Hamiltonian to break symmetry if necessary
+	fock0 = hCore + RandInit * Tridiagonal(rand(n,n).-0.5) #randomly perturb initial Hamiltonian to break symmetry if necessary
 	eOld = e0 = tr(hCore + fock0)*(orbitalsize/2)
 	
 	#Begin the main loop

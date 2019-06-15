@@ -259,9 +259,17 @@ function tranposeSparseTensor(tensor, perm)
 end
 
 #Assumes the orbitals are already orthonormal.
-#numViolate is number-violating terms. (c_i* c_j* + c_i c_j)*numViolate[i,j]. Not implemented yet...
-function generalizedHF(tMat, uEntries, n, enuc=0; tol=1e-7, maxiter=20, numViolate=())
-
+#numViolate is for number-violating terms. (c_i* c_j* + c_i c_j)*numViolate[i,j]. Not implemented yet...
+#oda=true enabled an Optimal Damping Algorithm
+#fockAvg=true will linearly combine fock matrices from previous iterations to stabilize search. Does not work well with oda=true.
+function generalizedHF(tMat, uEntries, n, enuc=0; tol=1e-7, maxiter=20,
+	numViolate=(), oda=true, fockAvg=false, tMAThw0=0)
+	#playing with these might help stability.
+	tMAThw = tMAThw0
+	RandInit = 0.8
+	# amount to average with previous iteration's density matrix.
+	OLDFOCKw = 0
+	
 	#Change basis from ak,ak* into c2k,c2k-1.
 	e0T, tMatC = fermToMajDense(tMat)
 	enuc += e0T
@@ -280,15 +288,12 @@ function generalizedHF(tMat, uEntries, n, enuc=0; tol=1e-7, maxiter=20, numViola
 	
 	#Begin the main loop
 	iter=1
+	oldfock_raise_iter = 0
 	smoothedIter=0
 	eOld = e0 = 0
+	densityMat::Array{Float64,2} = zeros(2*n,2*n)
 	
 	dFock = 0
-	#playing with these might help stability.
-	tMAThw = 0
-	RandInit = 0.8
-	# amount to average with previous iteration's density matrix.
-	OLDFOCKw = 0
 	println("Start loop")
 	
 	
@@ -312,8 +317,51 @@ function generalizedHF(tMat, uEntries, n, enuc=0; tol=1e-7, maxiter=20, numViola
 			fockEps = imag(diag(conj(transpose(fockOrbitals)) * h * fockOrbitals))*im
 		end
 		
+		#If we're doing Optimal Damping Algorithm, save the old density matrix
+		if iter > 1 && oda
+			oldDmat = densityMat
+		end
+		
+		function doGradDescent()
+			println("STARTING ENERGY: ",e0+enuc)
+			
+			#Compute gradient
+			Agrad = (densityMat * fock0 - fock0 * densityMat)
+			#Scale down gradient to a 'normalized' scale
+			Agrad /= maximum(abs.(Agrad)) * max(n, 5) * 2
+			println(maximum(abs.(Agrad)))
+			Asq = Agrad*Agrad
+			A4 = Asq*Asq
+			#accurate to 1e-8 for x in [-0.2,0.2]. Definitely good enough for this
+			expA = I + Agrad + Asq/2 + Agrad*Asq/6 + A4/24 + Agrad*A4/120
+				
+			while true
+				#If uncommented, these will tell you how far the density matrix is from eigenvalues just in [-I ... I].
+				#println("starting eval error: ",maximum(abs.(eigen(Hermitian(Array(1im * densityMat))).values/1im).-1))
+				trialDensityMat = expA * densityMat * transpose(expA)
+				#println("rotated eval error: ",maximum(abs.(eigen(Hermitian(Array(1im * densityMat))).values/1im).-1))
+				
+				fock0 = copy(tMatC)
+				uContrib = reshape(uMatC * reshape(trialDensityMat, (4*n*n)), (2*n,2*n))
+				fock0 += 6 * uContrib
+				
+				e1 = tr(densityMat * (tMatC + fock0))/4
+				
+				if e1 < e0
+					#good, we improved, let's try again with a double step size
+					densityMat = trialDensityMat
+					expA ^= 2
+					e0 = e1
+					println("NEW ENERGY: ",e1+enuc)
+				else
+					#Rotated too far, let's call it done
+					break
+				end
+			end
+		end
+		
 		# Build the density matrix by choosing signs of +-im in the Fock matrix
-		densityMat::Array{Float64,2} = real(fockOrbitals * spdiagm(0 => map(sign, fockEps)) * conj(transpose(fockOrbitals)))
+		densityMat = real(fockOrbitals * spdiagm(0 => map(sign, fockEps)) * conj(transpose(fockOrbitals)))
 		if VERBOSE
 			println("Density: ",densityMat)
 		end
@@ -330,6 +378,68 @@ function generalizedHF(tMat, uEntries, n, enuc=0; tol=1e-7, maxiter=20, numViola
 		fock0 += 6 * uContrib
 		#We've now built a new fock matrix and can repeat the loop.
 		
+		if iter > 1 && oda
+			#We know the energy at oldFock is e0
+			#Compute new energy at fock0:
+			e1 = tr(densityMat * (tMatC + fock0))/4
+			#Compute the energy at (oldFock + fock0)/2. The fock matrix here is the average of the two
+			#others, and the density matrix is also the average.
+			eHalf = tr(((oldDmat+densityMat)/2) * (tMatC + (oldFock+fock0)/2))/4
+			#Given energies e0, e1, and e0.5, we can compute parameters in ax^2+bx+c.
+			a = 2*(e0 - 2*eHalf + e1)
+			b = -3*e0 + 4*eHalf - e1
+			#Parabola vertex is at -b/2a
+			vert = -b/(2a)
+			println("ODA vertex at ",vert)
+			#Curve may be convex down, in which case take the lower endpoint
+			if(eHalf > (e0+e1)/2)
+				#convex down
+				println("Convex down")
+				vert = e0 > e1 ? 1 : 0
+			end
+			if(vert >= 1)
+				#vertex is outside our region of density matrices, just keep what we computed earlier
+			elseif(vert <= 0)
+				#we chose a strictly bad direction? This shouldn't happen often. If it is, we're choosing
+				#a bad direction for our new density matrix.
+				println("Warning: parabola vertex <= 0. ODA cannot run. Falling back to gradient descent.")
+				println("Energies: ",e0+enuc,eHalf+enuc,e1+enuc)
+				#put it back where it was before
+				densityMat = oldDmat
+				fock0 = oldFock
+				#Fall back to gradient descent
+				doGradDescent()
+			else
+				#Use the interpolation parameter
+				densityMat*= vert
+				fock0 *= vert
+				densityMat += oldDmat * (1-vert)
+				fock0 += oldFock * (1-vert)
+				
+				println("ODA Energy: ",enuc+tr(densityMat * (tMatC + fock0))/4)
+				
+				#These lines will do a mapping (x -> (3x - x^3)/2). If working with only pure states, this will help
+				#make sure they stay pure after rotation: it maps eigenvalues in the vicinty of I to I, and in the vicinity of -I to -I.
+				
+				#The idea is to take impure states and 'extremize' them in the (convex) space of allowed matrices.
+				for purifications = 1:3
+					oldDmat = densityMat
+					densityMat = (3*densityMat + densityMat*densityMat*densityMat)/2
+					impurity = sum(abs.(densityMat - oldDmat)) / n
+					#println("Removed impurity of ",impurity)
+					
+					impurity < 0.01 && break
+				end
+				
+				#Compute new energy
+				fock0 = copy(tMatC)
+				uContrib = reshape(uMatC * reshape(densityMat, (4*n*n)), (2*n,2*n))
+				fock0 += 6 * uContrib
+				
+				println("Purified ODA Energy: ",enuc+tr(densityMat * (tMatC + fock0))/4)
+			end
+		end
+		
 		# before we do, compute some numbers on how it's converging
 		dFockOld = dFock
 		dFock = oldFock - fock0
@@ -344,11 +454,15 @@ function generalizedHF(tMat, uEntries, n, enuc=0; tol=1e-7, maxiter=20, numViola
 		eTot = eNew + enuc
 		println("Iter #",iter,",  E = ",eTot,",  dFock = ",sum(abs.(dFock)))
 		
-		if(iter > 1 && sum(abs.(dFock)) > sum(abs.(dFockOld)))
-			OLDFOCKw += 0.5
+		if(fockAvg)
+			if(iter >= oldfock_raise_iter + 2 && (sum(abs.(dFock)) > 0.9 * sum(abs.(dFockOld))))
+				OLDFOCKw += 1/(2+3*OLDFOCKw)
+				oldfock_raise_iter = iter
+				println("fockAvg weight = ",OLDFOCKw)
+			end
+			fock0 = (fock0 + OLDFOCKw*oldFock)/(1+OLDFOCKw)
 		end
 		
-		fock0 = (fock0 + OLDFOCKw*oldFock)/(1+OLDFOCKw)
 		if iter > 1
 			eOld = e0
 		end
